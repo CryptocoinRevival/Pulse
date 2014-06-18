@@ -21,31 +21,40 @@ static bool Pulse(CBlockIndex* block) {
 
 //Goes in CBlock::AcceptBlock
 static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
-	bool ret = true;
+	bool ret = false;
 	CBlockHeader blockHead = block->GetBlockHeader();
 	CBlockIndex blockIndex = CBlockIndex(blockHead);
 	printf("Checking Block %u for Pulse: ", blockIndex.nHeight);
 	if( prevBlock->nHeight+1 >= PULSE_HEIGHT ) {
-		if( PULSE_RATE > 0 && block->GetBlockTime() < prevBlock->GetBlockTime()+PULSE_RATE ) {
-			printf("-Rate ");
-			ret = false;
+		if( PULSE_RATE > 0 && block->GetBlockTime() > prevBlock->GetBlockTime()+PULSE_RATE ) {
+			printf("+Rate ");
+			ret = true;
 		}
-		if( PULSE_MIN_TX > 0 && block->vtx.size() < PULSE_MIN_TX ) {
-			printf("-Min_TX ");
-			ret = false;
+		if( PULSE_MIN_TX > 0 && block->vtx.size() > PULSE_MIN_TX ) {
+			printf("+Min_TX ");
+			ret = true;
 		}
 		if( PULSE_MIN_VALUE > 0 ) {
 			int64 value;
-			BOOST_FOREACH(const CTransaction& tx, block->vtx)
+			int64 fee;
+			CCoinsView& cv;
+			BOOST_FOREACH(const CTransaction& tx, block->vtx) {
 				value += tx.GetValueOut();
-			if( value < PULSE_MIN_VALUE ) {
-				printf("-Min_Value ");
-				ret = false;
+				if( PULSE_MIN_FEE > 0 ) {
+					if( ! cv.SetBestBlock(blockIndex) ) {
+						continue;
+					}
+					fee += tx.GetValueIn(cv);
+				}
 			}
-/*			if( PULSE_MIN_FEE > 1 && fees < PULSE_MIN_FEE ) {
+			if( value > PULSE_MIN_VALUE ) {
+				printf("+Min_Value ");
+				ret = true;
+			}
+			if( PULSE_MIN_FEE > 0 && (fee - value) > PULSE_MIN_FEE ) {
 				printf("-Min_Fee ");
-				ret = false;
-			} */
+				ret = true;
+			}
 		}
 	}
 	if( ret )
@@ -55,7 +64,7 @@ static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
 	return ret;
 }
 
-//Goes in CTxMemPool::accept
+//Goes in CTxMemPool::accept maybe?
 static bool Pulse(CValidationState &state, CTransaction &tx) {
 	bool ret = true;
 	printf("Checking TX %s for Pulse: ", tx.GetHash());
