@@ -37,7 +37,7 @@ static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
 		if( PULSE_MIN_VALUE > 0 ) {
 			int64 value;
 			int64 fee;
-			CCoinsView& cv;
+			CCoinsView& cv = CCoinsView();
 			BOOST_FOREACH(const CTransaction& tx, block->vtx) {
 				value += tx.GetValueOut();
 				if( PULSE_MIN_FEE > 0 ) {
