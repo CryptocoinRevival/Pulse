@@ -16,7 +16,6 @@ static const int PULSE_MIN_VALUE = 1000;  /** Minimum value of the TX in a block
 static const int PULSE_MIN_FEE   = 20;    /** Minimum value of accumulated fees of the TX in a block to bypass Pulse-Rate (without COIN base) */
 
 static bool Pulse(int nHeight);
-static bool Pulse(CBlockIndex* block);
 static bool Pulse(CBlockIndex* prevBlock, CBlock* block);
 
 #endif

@@ -15,10 +15,6 @@ static bool Pulse(int nHeight) {
 	return false;
 }
 
-static bool Pulse(CBlockIndex* block) {
-	return Pulse(block->nHeight);
-}
-
 //Goes in CBlock::AcceptBlock
 static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
 	bool ret = false;
@@ -35,14 +31,14 @@ static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
 			ret = true;
 		}
 		if( PULSE_MIN_VALUE > 0 ) {
-			int64 value;
-			int64 fee;
-			CCoinsView& cv = CCoinsView();
-			CCoinsViewCache& cc =	CCoinsView(cv);
+			int64 value = 0;
+			int64 fee = 0;
+			CCoinsView cv = CCoinsView();
+			CCoinsViewCache cc =	CCoinsView(cv);
 			BOOST_FOREACH(const CTransaction& tx, block->vtx) {
 				value += tx.GetValueOut();
 				if( PULSE_MIN_FEE > 0 ) {
-					if( ! cv.SetBestBlock(blockIndex) ) {
+					if( ! cv.SetBestBlock(&blockIndex) ) {
 						continue;
 					}
 					fee += tx.GetValueIn(cc);
@@ -53,22 +49,11 @@ static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
 				ret = true;
 			}
 			if( PULSE_MIN_FEE > 0 && (fee - value) > PULSE_MIN_FEE ) {
-				printf("-Min_Fee ");
+				printf("+Min_Fee ");
 				ret = true;
 			}
 		}
 	}
-	if( ret )
-		printf(": Accepted\n");
-	else
-		printf(": Rejected\n");
-	return ret;
-}
-
-//Goes in CTxMemPool::accept maybe?
-static bool Pulse(CValidationState &state, CTransaction &tx) {
-	bool ret = true;
-	printf("Checking TX %s for Pulse: ", tx.GetHash());
 	if( ret )
 		printf(": Accepted\n");
 	else
