@@ -20,40 +20,38 @@ static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
 	bool ret = false;
 	CBlockHeader blockHead = block->GetBlockHeader();
 	CBlockIndex blockIndex = CBlockIndex(blockHead);
-	printf("Checking Block %u for Pulse: ", blockIndex.nHeight);
-	if( prevBlock->nHeight+1 >= PULSE_HEIGHT ) {
-		if( PULSE_RATE > 0 && block->GetBlockTime() > prevBlock->GetBlockTime()+PULSE_RATE ) {
-			printf("+Rate ");
-			ret = true;
-		}
+	int nHeight = prevBlock->nHeight+1;
+	printf("Checking Block %u for Pulse: ", nHeight);
+	if( PULSE_RATE > 0 && block->GetBlockTime() > prevBlock->GetBlockTime()+PULSE_RATE ) {
+		printf("+Rate ");
+		ret = true;
+	} //else {
 		if( PULSE_MIN_TX > 0 && block->vtx.size() > PULSE_MIN_TX ) {
 			printf("+Min_TX ");
 			ret = true;
 		}
-		if( PULSE_MIN_VALUE > 0 ) {
+		if( PULSE_MIN_VALUE > 0 || PULSE_MIN_FEE > 0 ) {
 			int64 value = 0;
 			int64 fee = 0;
-			CCoinsView cv = CCoinsView();
-			CCoinsViewCache cc = CCoinsViewCache(cv);
+			CCoinsViewCache cc(*pcoinsTip, true);
 			BOOST_FOREACH(const CTransaction& tx, block->vtx) {
 				value += tx.GetValueOut();
-				if( PULSE_MIN_FEE > 0 ) {
-					if( ! cv.SetBestBlock(&blockIndex) ) {
-						continue;
-					}
+				if( PULSE_MIN_FEE > 0 )
 					fee += tx.GetValueIn(cc);
-				}
 			}
-			if( value > PULSE_MIN_VALUE ) {
+			value = value - GetBlockValue(nHeight, nFees, blockIndex.nBits);
+			fee = fee - value;
+			printf("Value: %llu - Fee: %llu - Reward: %llu ", value, fee, GetBlockValue(nHeight, nFees, blockIndex.nBits));
+			if( PULSE_MIN_VALUE > 0 && value >= (PULSE_MIN_VALUE * COIN) ) {
 				printf("+Min_Value ");
 				ret = true;
 			}
-			if( PULSE_MIN_FEE > 0 && (fee - value) > PULSE_MIN_FEE ) {
+			if( PULSE_MIN_FEE > 0   && fee   >= (PULSE_MIN_FEE * COIN) ) {
 				printf("+Min_Fee ");
 				ret = true;
 			}
 		}
-	}
+	//}
 	if( ret )
 		printf(": Accepted\n");
 	else
