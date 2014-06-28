@@ -18,7 +18,6 @@ static bool Pulse(int nHeight) {
 //Goes in CBlock::AcceptBlock
 static bool Pulse(CBlockIndex* prevBlock, CBlock* block) {
 	bool ret = false;
-
 	CBlockHeader blockHead = block->GetBlockHeader();
 	CBlockIndex blockIndex = CBlockIndex(blockHead);
 	CCoinsViewCache view(*pcoinsTip, true);
